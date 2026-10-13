@@ -1,0 +1,4 @@
+/* Pestaña Historial: gráfica y lectura de datos */
+.grafica { position: relative; height: 300px; }
+.lectura-grafica { font-size: 14px; margin: 12px 0 0; color: var(--suave); }
+.lectura-grafica b { color: var(--bean); }

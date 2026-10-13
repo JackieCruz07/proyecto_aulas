@@ -1,0 +1,20 @@
+<section class="vista" id="vista-aulas" hidden>
+  <div class="caja">
+    <h2>Agregar aula</h2>
+    <p class="ayuda">El identificador debe ser igual al AULA_ID que tiene el ESP32 de esa aula en su configuración. Las aulas también aparecen solas cuando un ESP32 reporta por primera vez.</p>
+    <form class="barra" id="formAula">
+      <div class="campo"><label for="aId">Identificador</label><input id="aId" required autocomplete="off" placeholder="Ej. D103"></div>
+      <div class="campo ancho"><label for="aNombre">Nombre (opcional)</label><input id="aNombre" autocomplete="off" placeholder="Ej. Laboratorio de cómputo"></div>
+      <button class="btn primario" type="submit">Agregar aula</button>
+    </form>
+  </div>
+  <div class="caja">
+    <h2>Aulas registradas</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Aula</th><th>Nombre</th><th>Estado</th><th>Personas</th><th>Docente</th><th>Última lectura</th><th class="acciones"></th></tr></thead>
+        <tbody id="tablaAulas"></tbody>
+      </table>
+    </div>
+  </div>
+</section>

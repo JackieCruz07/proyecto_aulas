@@ -1,0 +1,21 @@
+/* Pantalla de acceso */
+html, body { height: 100%; }
+body { display: grid; grid-template-columns: 1fr 1fr; }
+
+.marca { background: var(--bean); color: var(--chiffon); display: flex; align-items: flex-end; padding: 48px; }
+.marca h1 { font-family: var(--titulos); font-weight: 600; font-size: clamp(40px, 6vw, 76px); line-height: 1; margin: 0; max-width: 7ch; }
+
+.acceso { display: flex; align-items: center; justify-content: center; padding: 32px; }
+.acceso form { width: 100%; max-width: 340px; }
+.acceso h2 { font-size: 28px; margin: 0 0 6px; }
+.acceso p { margin: 0 0 24px; color: var(--suave); font-size: 14px; line-height: 1.5; }
+.acceso label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.acceso input { width: 100%; height: auto; font-size: 15px; padding: 11px 12px; }
+.acceso .btn { margin-top: 16px; width: 100%; padding: 12px; font-size: 15px; }
+.error { margin: 0 0 16px; padding: 10px 12px; border-left: 3px solid var(--rosewood); background: var(--botticelli); color: var(--bean); font-size: 14px; }
+
+@media (max-width: 720px) {
+  body { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .marca { padding: 28px 24px; }
+  .marca h1 { max-width: none; font-size: 36px; }
+}

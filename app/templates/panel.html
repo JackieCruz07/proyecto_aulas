@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block estilos %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tablero.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/historial.css') }}">
+{% endblock %}
+
+{% block contenido %}
+<header class="cabecera">
+  <h1>Gestión de aulas</h1>
+  <div class="lado">
+    <span id="reloj"></span>
+    <a href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Secciones">
+  <button role="tab" data-tab="resumen" aria-selected="true">Resumen</button>
+  <button role="tab" data-tab="historial" aria-selected="false">Historial</button>
+  <button role="tab" data-tab="docentes" aria-selected="false">Docentes</button>
+  <button role="tab" data-tab="aulas" aria-selected="false">Aulas</button>
+</nav>
+
+<main>
+  {% include "partials/_resumen.html" %}
+  {% include "partials/_historial.html" %}
+  {% include "partials/_docentes.html" %}
+  {% include "partials/_aulas.html" %}
+</main>
+
+{% include "partials/_dialogos.html" %}
+<div class="aviso" id="aviso" role="status"></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script type="module" src="{{ url_for('static', filename='js/principal.js') }}"></script>
+{% endblock %}

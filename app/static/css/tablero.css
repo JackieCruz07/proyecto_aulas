@@ -1,0 +1,36 @@
+/* Pestaña Resumen: la frase de lectura, los filtros y el tablero de aulas */
+.lectura { font-family: var(--titulos); font-weight: 500; font-size: clamp(22px, 3.2vw, 32px); line-height: 1.25; margin: 0 0 22px; max-width: 40ch; }
+.lectura b { font-weight: 600; color: var(--rosewood); }
+
+.filtros { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.filtros input { width: min(100%, 260px); }
+.segmentos { display: inline-flex; border: 1px solid var(--bean); border-radius: 8px; overflow: hidden; }
+.segmentos button { background: transparent; border: 0; border-right: 1px solid var(--bean); padding: 8px 14px; font: 600 13px var(--cuerpo); color: var(--bean); cursor: pointer; }
+.segmentos button:last-child { border-right: 0; }
+.segmentos button[aria-pressed="true"] { background: var(--bean); color: var(--chiffon); }
+
+.tablero { list-style: none; margin: 0; padding: 6px 24px; background: var(--bean); color: var(--chiffon); border-radius: 14px; }
+.tablero :focus-visible { outline-color: var(--botticelli); }
+.tablero .vacio { color: rgba(255, 248, 202, .75); }
+
+.fila { display: grid; grid-template-columns: 150px 190px 1fr auto; gap: 20px; align-items: center; padding: 20px 0; border-bottom: 1px solid rgba(255, 248, 202, .16); }
+.fila:last-child { border-bottom: 0; }
+.fila .nombre { font-family: var(--titulos); font-weight: 600; font-size: 36px; line-height: 1; display: block; }
+.fila .estado { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; margin-top: 8px; color: var(--botticelli); }
+.fila .estado::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--botticelli); }
+.fila .estado.fuera { color: rgba(255, 248, 202, .6); }
+.fila .estado.fuera::before { background: transparent; border: 1.5px solid rgba(255, 248, 202, .6); }
+.fila .cifra { font-family: var(--titulos); font-weight: 600; font-size: 48px; line-height: 1; display: block; }
+.fila .detalle { font-size: 13px; color: var(--botticelli); margin-top: 4px; display: block; }
+.fila .docente b { display: block; font-size: 16px; font-weight: 600; }
+.fila .docente span { font-size: 13px; color: rgba(255, 248, 202, .75); }
+.fila .docente .ninguno { color: rgba(255, 248, 202, .6); font-size: 15px; }
+.fila .docente > div + div { margin-top: 8px; }
+.fila .btn { border-color: rgba(255, 248, 202, .55); color: var(--chiffon); }
+.fila .btn:hover { background: rgba(255, 248, 202, .12); }
+
+@media (max-width: 820px) {
+  .fila { grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+  .fila .docente { grid-column: 1 / -1; }
+  .fila .nombre { font-size: 32px; }
+}

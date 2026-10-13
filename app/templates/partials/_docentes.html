@@ -1,0 +1,20 @@
+<section class="vista" id="vista-docentes" hidden>
+  <div class="caja">
+    <h2>Agregar docente</h2>
+    <p class="ayuda">Para conocer el UID de una tarjeta, pásala por el lector: el Monitor Serie del ESP32 lo muestra.</p>
+    <form class="barra" id="formDocente">
+      <div class="campo ancho"><label for="dNombre">Nombre completo</label><input id="dNombre" required autocomplete="off"></div>
+      <div class="campo"><label for="dUid">UID de la tarjeta</label><input id="dUid" required autocomplete="off" placeholder="Ej. 6336D505"></div>
+      <button class="btn primario" type="submit">Agregar docente</button>
+    </form>
+  </div>
+  <div class="caja">
+    <h2>Docentes registrados</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Nombre</th><th>UID</th><th>Ubicación</th><th class="acciones"></th></tr></thead>
+        <tbody id="tablaDocentes"></tbody>
+      </table>
+    </div>
+  </div>
+</section>

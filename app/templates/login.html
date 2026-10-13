@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block titulo %}Gestión de aulas: acceso{% endblock %}
+
+{% block estilos %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+{% endblock %}
+
+{% block contenido %}
+<div class="marca"><h1>Gestión de aulas</h1></div>
+<main class="acceso">
+  <form method="post" action="{{ url_for('auth.login') }}">
+    <h2>Entrar al panel</h2>
+    <p>Escribe la contraseña para ver y administrar las aulas.</p>
+    {% if error %}<div class="error" role="alert">{{ error }}</div>{% endif %}
+    <label for="clave">Contraseña</label>
+    <input id="clave" name="clave" type="password" autocomplete="current-password" required autofocus>
+    <button class="btn primario" type="submit">Entrar</button>
+  </form>
+</main>
+{% endblock %}

@@ -1,0 +1,14 @@
+/* Paleta y tipografías: aquí se cambia la identidad visual de todo el panel */
+:root {
+  --chiffon: #FFF8CA;     /* Lemon Chiffon: fondo */
+  --rosewood: #6B0B0C;    /* Rosewood: acciones y acentos */
+  --bean: #2D120D;        /* Coffee Bean: texto y tablero */
+  --botticelli: #CDE3E8;  /* Botticelli: estados y encabezados de tabla */
+
+  --suave: rgba(45, 18, 13, .68);
+  --linea: rgba(45, 18, 13, .18);
+  --panel: rgba(255, 255, 255, .5);
+
+  --titulos: 'Oswald', 'Arial Narrow', Impact, sans-serif;
+  --cuerpo: 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}

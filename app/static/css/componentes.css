@@ -1,0 +1,66 @@
+/* Piezas reutilizables: cajas, formularios, botones, tablas, avisos y diálogos */
+.caja { background: var(--panel); border: 1px solid var(--linea); border-radius: 10px; padding: 20px; margin-bottom: 24px; }
+.ayuda { color: var(--suave); font-size: 13px; margin: 0 0 14px; }
+.vacio { padding: 28px 8px; text-align: center; color: var(--suave); }
+.scroll { overflow-x: auto; }
+
+/* Formularios */
+.barra { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 16px; }
+.campo { display: flex; flex-direction: column; gap: 5px; min-width: 150px; }
+.campo.ancho { flex: 1 1 220px; }
+.campo label { font-size: 13px; font-weight: 600; }
+input, select {
+  font: inherit;
+  font-size: 14px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--linea);
+  background: rgba(255, 255, 255, .7);
+  color: var(--bean);
+  min-width: 0;
+  height: 40px;
+}
+
+/* Botones y etiquetas */
+.btn {
+  font: 600 14px var(--cuerpo);
+  padding: 9px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--bean);
+  background: transparent;
+  color: var(--bean);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn.primario { background: var(--rosewood); border-color: var(--rosewood); color: var(--chiffon); }
+.btn.peligro { color: var(--rosewood); border-color: var(--rosewood); }
+.btn.chico { padding: 5px 11px; font-size: 13px; }
+
+.pill { display: inline-block; padding: 2px 11px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--botticelli); color: var(--bean); white-space: nowrap; }
+.pill.apagada { background: transparent; border: 1px solid var(--linea); color: var(--suave); }
+
+/* Tablas */
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-weight: 600; padding: 10px 12px; background: rgba(205, 227, 232, .6); white-space: nowrap; }
+th:first-child { border-radius: 6px 0 0 6px; }
+th:last-child { border-radius: 0 6px 6px 0; }
+td { padding: 12px; border-bottom: 1px solid var(--linea); vertical-align: middle; }
+td.acciones, th.acciones { text-align: right; white-space: nowrap; }
+td.acciones .btn { margin-left: 6px; }
+.uid { letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+
+/* Avisos y diálogos */
+.aviso {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  max-width: 90vw; background: var(--bean); color: var(--chiffon);
+  padding: 12px 20px; border-radius: 8px; font-size: 14px;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.aviso.ver { opacity: 1; }
+.aviso.error { background: var(--rosewood); }
+
+dialog { border: 0; border-radius: 12px; padding: 24px; background: var(--chiffon); color: var(--bean); width: min(420px, 92vw); box-shadow: 0 24px 60px rgba(45, 18, 13, .4); }
+dialog::backdrop { background: rgba(45, 18, 13, .55); }
+dialog h2 { font-size: 22px; }
+dialog .campo { margin-bottom: 14px; }
+dialog .botones { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
