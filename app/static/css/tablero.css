@@ -22,6 +22,7 @@
 .fila .estado.fuera::before { background: transparent; border: 1.5px solid rgba(255, 248, 202, .6); }
 .fila .cifra { font-family: var(--titulos); font-weight: 600; font-size: 48px; line-height: 1; display: block; }
 .fila .detalle { font-size: 13px; color: var(--botticelli); margin-top: 4px; display: block; }
+.fila .revisar { display: inline-block; background: var(--chiffon); color: var(--rosewood); border-radius: 999px; padding: 0 9px; font-size: 12px; font-weight: 600; margin-left: 4px; }
 .fila .docente b { display: block; font-size: 16px; font-weight: 600; }
 .fila .docente span { font-size: 13px; color: rgba(255, 248, 202, .75); }
 .fila .docente .ninguno { color: rgba(255, 248, 202, .6); font-size: 15px; }

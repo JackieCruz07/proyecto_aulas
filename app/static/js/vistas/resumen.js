@@ -2,6 +2,9 @@
 import {datos} from '../datos.js';
 import {$, $$, esc, hora, plural} from '../utilidades.js';
 
+// Si el radar y los sensores ToF difieren en esta cantidad de personas o más, se avisa
+const DESVIO_ALERTA = 2;
+
 let filtro = 'todas';
 
 export function iniciarResumen() {
@@ -37,6 +40,15 @@ function frase() {
          `<b>${conDocente}</b> con docente. <b>${alumnos}</b> ${alumnos === 1 ? 'alumno' : 'alumnos'} en total.`;
 }
 
+// Línea de verificación con los sensores ToF (solo si el aula los tiene)
+function verificacionTof(a) {
+  if (a.personas_tof === null || a.personas_tof === undefined) return '';
+  const difiere = Math.abs(a.personas - a.personas_tof) >= DESVIO_ALERTA;
+  const sinConfirmar = a.sin_confirmar > 0 ? `. Sin confirmar: ${a.sin_confirmar}` : '';
+  const aviso = difiere ? ' <span class="revisar">Revisar</span>' : '';
+  return `<span class="detalle">verificado con ToF: ${a.personas_tof}${sinConfirmar}${aviso}</span>`;
+}
+
 function filaAula(a) {
   const alumnos = alumnosDe(a);
   const detalle = a.en_linea
@@ -57,6 +69,7 @@ function filaAula(a) {
     <div>
       <span class="cifra">${alumnos}</span>
       <span class="detalle">${alumnos === 1 ? 'alumno' : 'alumnos'}<br>${detalle}</span>
+      ${verificacionTof(a)}
     </div>
     <div class="docente">${docentes}</div>
     <div>${botones}</div>

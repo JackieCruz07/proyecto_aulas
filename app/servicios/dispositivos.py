@@ -7,15 +7,27 @@ from ..repositorios import aulas, conteos, docentes, registros
 from ..utilidades import ahora, limpiar_aula, limpiar_uid, segundos_desde
 
 
+def _entero_opcional(valor, nombre):
+    """Campo opcional: None si no viene; error si viene pero no es un entero válido."""
+    if valor is None:
+        return None
+    if not isinstance(valor, int) or isinstance(valor, bool) or valor < 0:
+        raise ErrorApi(f"El campo {nombre} no es válido", 400)
+    return valor
+
+
 def registrar_conteo(datos):
     aula = limpiar_aula(datos.get("aula"))
     personas = datos.get("personas")
     if not aula or not isinstance(personas, int) or isinstance(personas, bool) or personas < 0:
         raise ErrorApi("Datos inválidos", 400)
 
+    personas_tof = _entero_opcional(datos.get("tof"), "tof")
+    sin_confirmar = _entero_opcional(datos.get("sin_confirmar"), "sin_confirmar")
+
     fecha = ahora()
     aulas.asegurar(aula)
-    aulas.registrar_lectura(aula, personas, fecha)
+    aulas.registrar_lectura(aula, personas, fecha, personas_tof, sin_confirmar)
     conteos.insertar(aula, personas, fecha)
     obtener_db().commit()
 

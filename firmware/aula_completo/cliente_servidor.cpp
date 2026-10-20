@@ -3,12 +3,17 @@
 #include <HTTPClient.h>
 #include "config.h"
 #include "conteo.h"
+#include "tof.h"
+#include "verificacion.h"
 #include "cliente_servidor.h"
 
 namespace {
 
 constexpr int LARGO_UID = 24;
 QueueHandle_t colaTarjetas;
+
+int tofEnviado = -1;
+unsigned long sinConfirmarEnviado = 0;
 
 // Devuelve true si el servidor respondió (aunque sea con un error); false si no hubo conexión
 bool enviarTarjetaAlServidor(const char* uid) {
@@ -33,15 +38,27 @@ bool enviarTarjetaAlServidor(const char* uid) {
 }
 
 void enviarConteoAlServidor() {
-  int n = Conteo::personas();
+  int n = Verificacion::personas();        // conteo oficial: radar + ToF fusionados
   HTTPClient http;
   http.begin(String(SERVIDOR) + "/api/conteo");
   http.addHeader("Content-Type", "application/json");
   http.addHeader("X-API-Key", API_KEY);
   http.setTimeout(3000);
-  int codigo = http.POST("{\"aula\":\"" + String(AULA_ID) + "\",\"personas\":" + String(n) + "}");
+  String cuerpo = "{\"aula\":\"" + String(AULA_ID) + "\",\"personas\":" + String(n);
+  int tof = Tof::personas();
+  unsigned long sinConfirmar = Verificacion::sinConfirmar();
+  if (Tof::disponible()) {
+    cuerpo += ",\"tof\":" + String(tof) + ",\"sin_confirmar\":" + String((int)sinConfirmar);
+  }
+  cuerpo += "}";
+  int codigo = http.POST(cuerpo);
   http.end();
-  Serial.printf("Conteo -> servidor: personas=%d, codigo=%d\n", n, codigo);
+  if (codigo >= 200 && codigo < 300) {
+    tofEnviado = tof;
+    sinConfirmarEnviado = sinConfirmar;
+  }
+  if (Tof::disponible()) Serial.printf("Conteo -> servidor: oficial=%d (tof=%d, modo %s), codigo=%d\n", n, tof, Verificacion::modo(), codigo);
+  else                   Serial.printf("Conteo -> servidor: personas=%d, codigo=%d\n", n, codigo);
 }
 
 // Tarea aparte: así el radar nunca se queda esperando a la red
@@ -68,8 +85,10 @@ void tareaEnvio(void*) {
 
       // 2) El conteo, cuando cambia o cada minuto
       bool tocaLatido = millis() - ultimoConteo > INTERVALO_LATIDO_MS;
-      if (Conteo::hayCambioPendiente() || tocaLatido) {
-        Conteo::limpiarCambioPendiente();
+      bool cambioTof = Tof::disponible() &&
+                       (Tof::personas() != tofEnviado || Verificacion::sinConfirmar() != sinConfirmarEnviado);
+      if (Verificacion::hayCambioPendiente() || cambioTof || tocaLatido) {
+        Verificacion::limpiarCambioPendiente();
         enviarConteoAlServidor();
         ultimoConteo = millis();
       }

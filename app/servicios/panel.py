@@ -19,6 +19,8 @@ def estado_aulas():
             "id": aula["id"],
             "nombre": aula["nombre"],
             "personas": aula["personas"] or 0,
+            "personas_tof": aula["personas_tof"],              # None si el aula no tiene sensores ToF
+            "sin_confirmar": aula["sin_confirmar"] or 0,
             "ultima_conexion": ultima,
             "en_linea": en_linea,
             "docentes": [dict(d) for d in registros.abiertos_de_aula(aula["id"])],

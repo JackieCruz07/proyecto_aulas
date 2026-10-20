@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <math.h>
 #include "config.h"
 #include "conteo.h"
 
@@ -10,20 +11,32 @@ HardwareSerial Radar(2);
 const uint8_t CABECERA[4] = {0xAA, 0xFF, 0x03, 0x00};
 constexpr int LARGO_TRAMA = 30;
 
+// Cola de eventos de cruce: la drena verificacion.cpp (radar + ToF fusionados)
+constexpr int LARGO_COLA = 8;
+struct Evento { int dir; unsigned long ms; };
+Evento colaEventos[LARGO_COLA];
+int colaCabeza = 0;
+int colaCola = 0;
+
 uint8_t trama[LARGO_TRAMA];
 int posicion = 0;
 
-// Zona de cada uno de los 3 objetivos: 0 = desconocida, 1 = lejos, 2 = cerca
+// Estado de cada una de las 3 "ranuras" de objetivo del radar.
+// zona: 0 = desconocida, 1 = lejos del radar (dentro del salón), 2 = cerca (en el umbral)
 int zona[3] = {0, 0, 0};
+int framesEnZona[3] = {0, 0, 0};        // tramas seguidas viéndolo en la zona candidata
+int candidata[3] = {0, 0, 0};           // zona candidata a ser la nueva (evita cruces de un solo frame)
 int framesSinVer[3] = {0, 0, 0};
+bool conPosicion[3] = {false, false, false};
+int16_t ultX[3] = {0, 0, 0}, ultY[3] = {0, 0, 0};
+unsigned long ultimoCruceRanura[3] = {0, 0, 0};
 
-volatile int totalPersonas = 0;
-volatile bool cambioPendiente = true;   // true al inicio para enviar el primer dato
-
+int provisional = 0;                    // lo que vería el radar solo (diagnóstico)
 unsigned long totalBytes = 0;
 unsigned long totalTramas = 0;
+unsigned long ultimoTramaMs = 0;
 
-bool diagnostico = false;               // si es true, muestra lo que ve el radar
+bool diagnostico = false;
 unsigned long ultimoDiagnostico = 0;
 
 // El radar manda cada valor con el bit 15 como signo (1 = positivo)
@@ -32,18 +45,43 @@ int16_t decodificar(uint16_t crudo) {
   return (crudo & 0x8000) ? valor : -valor;
 }
 
-void registrarCruce(int zonaAnterior, int zonaNueva) {
-  bool entrada = (zonaAnterior == 1 && zonaNueva == 2);
+void encolar(int dir, unsigned long ms) {
+  int siguiente = (colaCola + 1) % LARGO_COLA;
+  if (siguiente == colaCabeza) {                    // cola llena: se descarta el evento más viejo
+    colaCabeza = (colaCabeza + 1) % LARGO_COLA;
+    Serial.println("!! El radar cruzo mas rapido de lo que se procesa: evento viejo descartado.");
+  }
+  colaEventos[colaCola] = {dir, ms};
+  colaCola = siguiente;
+}
+
+void registrarCruce(int ranura, int zonaAnterior, int zonaNueva) {
+  unsigned long ahora = millis();
+  if (ahora - ultimoCruceRanura[ranura] < MIN_MS_CRUCE_RANURA) {
+    // Rebote o cambio de ranura: una persona no cruza dos veces tan seguido
+    return;
+  }
+  ultimoCruceRanura[ranura] = ahora;
+
+  // Con el radar dentro del salón mirando hacia adentro:
+  // quien ENTRA se aleja (cerca -> lejos), quien SALE se acerca (lejos -> cerca).
+  bool entrada = (zonaAnterior == 2 && zonaNueva == 1);
   if (INVERTIR) entrada = !entrada;
 
-  if (entrada) {
-    totalPersonas = totalPersonas + 1;
-    Serial.printf(">> ENTRADA  | Personas en el aula: %d\n", (int)totalPersonas);
-  } else {
-    if (totalPersonas > 0) totalPersonas = totalPersonas - 1;
-    Serial.printf("<< SALIDA   | Personas en el aula: %d\n", (int)totalPersonas);
-  }
-  cambioPendiente = true;
+  int dir = entrada ? 1 : -1;
+  provisional += dir;
+  if (provisional < 0) provisional = 0;
+  encolar(dir, ahora);
+
+  Serial.printf("%s [radar, ranura %d] | %s -> %s | y: %d mm | provisional radar: %d\n",
+                entrada ? ">> CANDIDATO ENTRADA" : "<< CANDIDATO SALIDA", ranura + 1,
+                zonaAnterior == 2 ? "cerca" : "lejos", zonaNueva == 2 ? "cerca" : "lejos",
+                (int)ultY[ranura], provisional);
+}
+
+void olvidarRanura(int t) {
+  zona[t] = 0; candidata[t] = 0; framesEnZona[t] = 0; conPosicion[t] = false;
+  framesSinVer[t] = 0;
 }
 
 void procesarTrama() {
@@ -55,36 +93,62 @@ void procesarTrama() {
     int16_t x = decodificar(trama[base]     | (trama[base + 1] << 8));
     int16_t y = decodificar(trama[base + 2] | (trama[base + 3] << 8));
 
+    // Puerta de entrada de datos: dentro del pasillo en ancho, dentro del rango
+    // útil en distancia y dentro del cono de ±ANGULO_MAXIMO grados. El LD2450
+    // tiene cono físico de ±60°; estrecharlo aquí evita seguir a gente de más.
     bool existe = !(x == 0 && y == 0);
-    bool valido = existe && abs(x) <= X_MAX && y > 0 && y <= Y_MAX;
-
-    int zonaActual = 0;   // 1 = lejos de la línea, 2 = cerca, 0 = zona muerta o fuera del área
-    if (valido) {
-      if (y > LINEA_Y + HISTERESIS)      zonaActual = 1;
-      else if (y < LINEA_Y - HISTERESIS) zonaActual = 2;
-    }
+    bool enCono = existe && y > 0 && abs(x) * 1000 <= y * (int)(tan(ANGULO_MAXIMO * DEG_TO_RAD) * 1000 + 0.5f);
+    bool valido = existe && abs(x) <= X_MAX && y >= Y_MIN && y <= Y_MAX && enCono;
 
     if (imprimir && existe) {
-      const char* donde = !valido ? "FUERA DEL AREA (se ignora)"
-                        : zonaActual == 1 ? "lejos de la linea"
-                        : zonaActual == 2 ? "cerca de la linea"
-                        : "zona muerta";
+      const char* donde = !enCono ? "FUERA DEL CONO (se ignora)"
+                        : !valido ? "FUERA DEL PASILLO (se ignora)"
+                        : y > LINEA_Y + HISTERESIS ? "lejos del radar (dentro del salon)"
+                        : y < LINEA_Y - HISTERESIS ? "cerca del radar (en el umbral)"
+                        : "zona muerta de la linea";
       Serial.printf("[T%d] x=%5d mm  y=%5d mm  -> %s\n", t + 1, x, y, donde);
       huboObjetivo = true;
     }
 
     if (!valido) {
-      if (++framesSinVer[t] > FRAMES_PERDIDO) zona[t] = 0;
+      if (++framesSinVer[t] > FRAMES_PERDIDO) olvidarRanura(t);
       continue;
     }
     framesSinVer[t] = 0;
-    if (zonaActual == 0) continue;               // en la zona muerta: no se decide nada
+
+    // Un salto de más de MAX_SALTO_MM entre tramas no lo hace una persona
+    // caminando: la ranura cambió de persona. Se vuelve a seguirla desde cero
+    // para no inventar un cruce al saltar de una persona a otra.
+    if (conPosicion[t] && (abs(x - ultX[t]) > MAX_SALTO_MM || abs(y - ultY[t]) > MAX_SALTO_MM)) {
+      zona[t] = 0; candidata[t] = 0; framesEnZona[t] = 0;
+    }
+    ultX[t] = x; ultY[t] = y; conPosicion[t] = true;
+
+    int zonaActual = 0;   // 1 = lejos, 2 = cerca, 0 = en la zona muerta de la línea
+    if (y > LINEA_Y + HISTERESIS)      zonaActual = 1;
+    else if (y < LINEA_Y - HISTERESIS) zonaActual = 2;
+
+    if (zonaActual == 0) {               // en la zona muerta no se decide nada
+      candidata[t] = 0; framesEnZona[t] = 0;
+      continue;
+    }
 
     if (zona[t] == 0) {
-      zona[t] = zonaActual;                      // primera vez que lo vemos fuera de la zona muerta
-    } else if (zonaActual != zona[t]) {
-      registrarCruce(zona[t], zonaActual);
+      zona[t] = zonaActual;              // primera vez que lo vemos fuera de la zona muerta
+      continue;
+    }
+    if (zonaActual == zona[t]) {         // sigue en su zona: se estabiliza
+      candidata[t] = 0; framesEnZona[t] = 0;
+      continue;
+    }
+
+    // Zona distinta: se exige verla MIN_FRAMES_EN_ZONA tramas seguidas antes de
+    // creer el cruce (un solo frame ruidoso no cuenta).
+    if (candidata[t] != zonaActual) { candidata[t] = zonaActual; framesEnZona[t] = 1; }
+    else if (++framesEnZona[t] >= MIN_FRAMES_EN_ZONA) {
+      registrarCruce(t, zona[t], zonaActual);
       zona[t] = zonaActual;
+      candidata[t] = 0; framesEnZona[t] = 0;
     }
   }
 
@@ -181,29 +245,40 @@ void actualizar() {
 
     if (alimentarParser(b)) {
       totalTramas++;
+      ultimoTramaMs = millis();
       procesarTrama();
     }
   }
 }
 
+bool proximoEvento(int& dir, unsigned long& ms) {
+  if (colaCabeza == colaCola) return false;
+  dir = colaEventos[colaCabeza].dir;
+  ms = colaEventos[colaCabeza].ms;
+  colaCabeza = (colaCabeza + 1) % LARGO_COLA;
+  return true;
+}
+
+int  personasSolo()          { return provisional; }
 unsigned long bytesRecibidos()  { return totalBytes; }
 unsigned long tramasRecibidas() { return totalTramas; }
-
-int  personas()              { return totalPersonas; }
-bool hayCambioPendiente()    { return cambioPendiente; }
-void limpiarCambioPendiente(){ cambioPendiente = false; }
+unsigned long ultimoDatoMs()    { return ultimoTramaMs; }
 
 void reiniciar() {
-  totalPersonas = 0;
-  cambioPendiente = true;
+  provisional = 0;
+  colaCabeza = colaCola = 0;
+  for (int t = 0; t < 3; t++) {
+    ultimoCruceRanura[t] = 0;
+    olvidarRanura(t);
+  }
 }
 
 void alternarDiagnostico() {
   diagnostico = !diagnostico;
   if (diagnostico) {
-    Serial.printf("Diagnostico ACTIVADO. Linea de conteo a %d mm (zona muerta de %d mm a cada lado).\n",
-                  LINEA_Y, HISTERESIS);
-    Serial.println("Para contar, la persona debe pasar de 'lejos' a 'cerca' (entrada) o al reves (salida).");
+    Serial.printf("Diagnostico ACTIVADO. Pasillo: linea a %d mm (muerta +- %d mm), ancho +- %d mm, rango %d-%d mm, cono +-%d grados.\n",
+                  LINEA_Y, HISTERESIS, X_MAX, Y_MIN, Y_MAX, ANGULO_MAXIMO);
+    Serial.println("Con el radar dentro del salon: entrar es 'cerca -> lejos', salir es 'lejos -> cerca'.");
   } else {
     Serial.println("Diagnostico desactivado.");
   }

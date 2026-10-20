@@ -7,7 +7,7 @@
 
   Conexiones (las mismas del proyecto):
     Radar TX -> GPIO16   Radar RX -> GPIO17   Radar 5V -> 5V   GND -> GND
-    RC522: SDA(SS)->GPIO5  SCK->GPIO18  MOSI->GPIO23  MISO->GPIO19  RST->GPIO22  3.3V->3V3  GND->GND
+    RC522: SDA(SS)->GPIO5  SCK->GPIO18  MOSI->GPIO23  MISO->GPIO19  RST->GPIO27  3.3V->3V3  GND->GND
 
   Monitor Serie a 115200. Comandos:
     m  cambia el método de lectura de tarjetas (hay 3, se muestra cuál está activo)

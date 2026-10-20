@@ -3,10 +3,16 @@
   -----------------------------------------------------------
   Misma conexión de la prueba 1 (radar TX -> GPIO16, radar RX -> GPIO17).
 
+  Montaje de esta prueba (igual que el programa final): el radar va en el marco
+  de la puerta, a ~135 cm, DENTRO del salón y mirando hacia adentro.
+
   Idea: se define una "línea imaginaria" a LINEA_Y milímetros frente al radar.
-    - Si una persona pasa de LEJOS a CERCA del radar  -> ENTRADA (+1)
-    - Si pasa de CERCA a LEJOS                         -> SALIDA  (-1)
+    - Si una persona pasa de CERCA a LEJOS del radar  -> ENTRADA (+1)
+    - Si pasa de LEJOS a CERCA                        -> SALIDA  (-1)
   Si en tu instalación el sentido te queda al revés, cambia INVERTIR a true.
+
+  Solo se sigue a quien esté dentro del pasillo (±X_MAX, Y_MIN..Y_MAX y cono de
+  ±ANGULO_MAXIMO grados), así como hace el programa final.
 
   Monitor Serie a 115200. Escribe la letra 'r' y Enter para reiniciar el contador.
 */
@@ -15,10 +21,12 @@
 #define RADAR_TX_PIN 17
 
 // ---- Ajustes (en milímetros) ----
-#define LINEA_Y     1500   // distancia de la línea imaginaria al radar
-#define HISTERESIS  150    // zona "muerta" alrededor de la línea (evita rebotes)
-#define X_MAX       1000   // se ignora lo que esté más a los lados (±)
-#define Y_MAX       4000   // se ignora lo que esté más lejos que esto
+#define LINEA_Y     900    // línea a 90 cm dentro del salón (mitad del pasillo)
+#define HISTERESIS  250    // zona "muerta" alrededor de la línea (evita rebotes)
+#define Y_MIN       250    // zona ciega del radar: se ignora todo lo más cerca
+#define Y_MAX       2500   // se ignora lo que esté más lejos que esto
+#define X_MAX       700    // ancho del pasillo seguido (±)
+#define ANGULO_MAXIMO 30   // cono seguido: ± grados (el LD2450 ve ±60°)
 #define FRAMES_PERDIDO 8   // tramas sin ver a la persona antes de olvidarla (~0.8 s)
 #define INVERTIR    false
 
@@ -31,7 +39,7 @@ uint8_t trama[LARGO_TRAMA];
 int posicion = 0;
 
 // Estado por cada uno de los 3 "espacios" de objetivo del radar
-// zona: 0 = desconocida, 1 = lejos, 2 = cerca
+// zona: 0 = desconocida, 1 = lejos (dentro del salón), 2 = cerca (en el umbral)
 int zona[3] = {0, 0, 0};
 int framesSinVer[3] = {0, 0, 0};
 
@@ -43,7 +51,7 @@ int16_t decodificar(uint16_t crudo) {
 }
 
 void registrarCruce(int zonaAnterior, int zonaNueva) {
-  bool entrada = (zonaAnterior == 1 && zonaNueva == 2);
+  bool entrada = (zonaAnterior == 2 && zonaNueva == 1);   // cerca -> lejos = ENTRADA
   if (INVERTIR) entrada = !entrada;
 
   if (entrada) {
@@ -61,7 +69,10 @@ void procesarTrama() {
     int16_t x = decodificar(trama[base]     | (trama[base + 1] << 8));
     int16_t y = decodificar(trama[base + 2] | (trama[base + 3] << 8));
 
-    bool valido = !(x == 0 && y == 0) && abs(x) <= X_MAX && y > 0 && y <= Y_MAX;
+    bool existe = !(x == 0 && y == 0);
+    bool enCono = existe && y > 0 &&
+                  abs(x) * 1000 <= y * (int)(tan(ANGULO_MAXIMO * DEG_TO_RAD) * 1000 + 0.5f);
+    bool valido = existe && abs(x) <= X_MAX && y >= Y_MIN && y <= Y_MAX && enCono;
 
     if (!valido) {
       // Esperamos unas tramas antes de olvidar, por si es un parpadeo del radar

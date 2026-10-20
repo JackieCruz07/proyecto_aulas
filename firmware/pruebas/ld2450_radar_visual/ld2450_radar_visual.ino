@@ -10,6 +10,12 @@
 
   En la página verás el radar con los puntos de cada persona, la línea de conteo
   y el contador de personas. También puedes seguir usando el Monitor Serie (115200).
+
+  Montaje (igual que el programa final): el radar va en el marco de la puerta,
+  a ~135 cm, DENTRO del salón y mirando hacia adentro: quien ENTRA pasa de
+  CERCA a LEJOS (entrada), quien SALE pasa de LEJOS a CERCA (salida).
+  Solo cuenta quien esté dentro del pasillo (±X_MAX, Y_MIN..Y_MAX y cono de
+  ±ANGULO_MAXIMO grados); lo demás sale en gris.
 */
 
 #include <WiFi.h>
@@ -19,10 +25,12 @@
 #define RADAR_TX_PIN 17
 
 // ---- Ajustes (milímetros) ----
-#define LINEA_Y     1500
-#define HISTERESIS  150
-#define X_MAX       1000
-#define Y_MAX       4000
+#define LINEA_Y     900    // línea a 90 cm dentro del salón
+#define HISTERESIS  250    // zona muerta ± alrededor de la línea
+#define Y_MIN       250    // zona ciega del radar
+#define Y_MAX       2500   // más lejos ya es gente dentro del salón
+#define X_MAX       700    // ancho del pasillo seguido (±)
+#define ANGULO_MAXIMO 30   // cono seguido: ± grados
 #define FRAMES_PERDIDO 8
 #define INVERTIR    false
 
@@ -63,8 +71,9 @@ const char PAGINA[] PROGMEM = R"rawliteral(
 <div id="n">0</div>
 <canvas id="c" width="600" height="400"></canvas><br>
 <button onclick="fetch('/reset')">Reiniciar contador</button><br>
-<small>Punto verde: cuenta para el conteo. Punto gris: fuera del área de conteo.<br>
-Radar abajo al centro; el frente del sensor apunta hacia arriba.</small>
+<small>Punto de color: dentro del pasillo de conteo. Punto gris: fuera del área de conteo.<br>
+Radar abajo al centro; el frente del sensor apunta hacia arriba (hacia el interior del salón).<br>
+Línea amarilla: línea de conteo (90 cm). Discontinua azul: cono de ±30°. Sólida: cono real ±60°.</small>
 <script>
 const c=document.getElementById('c'), g=c.getContext('2d');
 const W=c.width, H=c.height, MAXX=3000, MAXY=4000;
@@ -77,11 +86,18 @@ function base(l,h){
     g.beginPath(); g.arc(W/2,H,r*k,Math.PI,2*Math.PI); g.stroke();
     g.fillText((r/1000)+' m', W/2+4, H-r*k+12);
   }
-  // abanico de +-60 grados
+  // abanico de +-60 grados (cono físico del LD2450)
   g.beginPath(); g.moveTo(W/2,H);
   g.lineTo(W/2-Math.sin(Math.PI/3)*MAXY*k, H-Math.cos(Math.PI/3)*MAXY*k); g.stroke();
   g.beginPath(); g.moveTo(W/2,H);
   g.lineTo(W/2+Math.sin(Math.PI/3)*MAXY*k, H-Math.cos(Math.PI/3)*MAXY*k); g.stroke();
+  // cono de conteo: +-30 grados (lo que realmente sigue el programa final)
+  g.strokeStyle='rgba(56,189,248,0.7)'; g.setLineDash([6,4]);
+  g.beginPath(); g.moveTo(W/2,H);
+  g.lineTo(W/2-Math.sin(Math.PI/6)*MAXY*k, H-Math.cos(Math.PI/6)*MAXY*k); g.stroke();
+  g.beginPath(); g.moveTo(W/2,H);
+  g.lineTo(W/2+Math.sin(Math.PI/6)*MAXY*k, H-Math.cos(Math.PI/6)*MAXY*k); g.stroke();
+  g.setLineDash([]); g.strokeStyle='#2d5a3d';
   // línea de conteo y zona muerta
   g.fillStyle='rgba(250,204,21,0.12)';
   g.fillRect(0,H-(l+h)*k,W,2*h*k);
@@ -134,7 +150,7 @@ int16_t decodificar(uint16_t crudo) {
 }
 
 void registrarCruce(int zonaAnterior, int zonaNueva) {
-  bool entrada = (zonaAnterior == 1 && zonaNueva == 2);
+  bool entrada = (zonaAnterior == 2 && zonaNueva == 1);   // cerca -> lejos = ENTRADA
   if (INVERTIR) entrada = !entrada;
   if (entrada) {
     personas++;
@@ -153,7 +169,9 @@ void procesarTrama() {
     int16_t v = decodificar(trama[base + 4] | (trama[base + 5] << 8));
 
     bool existe = !(x == 0 && y == 0);
-    bool valido = existe && abs(x) <= X_MAX && y > 0 && y <= Y_MAX;
+    bool enCono = existe && y > 0 &&
+                  abs(x) * 1000 <= y * (int)(tan(ANGULO_MAXIMO * DEG_TO_RAD) * 1000 + 0.5f);
+    bool valido = existe && abs(x) <= X_MAX && y >= Y_MIN && y <= Y_MAX && enCono;
 
     objActivo[t] = existe;
     objValido[t] = valido;

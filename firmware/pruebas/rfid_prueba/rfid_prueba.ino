@@ -7,7 +7,7 @@
     RC522 SCK       -> GPIO18  (D18)
     RC522 MOSI      -> GPIO23  (D23)
     RC522 MISO      -> GPIO19  (D19)
-    RC522 RST       -> GPIO22  (D22)
+    RC522 RST       -> GPIO27  (D27)
     RC522 3.3V      -> 3V3
     RC522 GND       -> GND
     RC522 IRQ       -> sin conectar
@@ -22,7 +22,7 @@
 #include <MFRC522.h>
 
 #define SS_PIN   5
-#define RST_PIN  22
+#define RST_PIN  27
 #define SCK_PIN  18
 #define MISO_PIN 19
 #define MOSI_PIN 23

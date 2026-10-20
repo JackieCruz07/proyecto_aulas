@@ -10,9 +10,12 @@ def listar():
     return obtener_db().execute("SELECT * FROM aulas ORDER BY id").fetchall()
 
 
-def registrar_lectura(aula_id, personas, fecha):
+def registrar_lectura(aula_id, personas, fecha, personas_tof=None, sin_confirmar=None):
+    """personas_tof y sin_confirmar son None si el aula no tiene sensores ToF."""
     obtener_db().execute(
-        "UPDATE aulas SET personas = ?, ultima_conexion = ? WHERE id = ?", (personas, fecha, aula_id)
+        """UPDATE aulas SET personas = ?, ultima_conexion = ?, personas_tof = ?, sin_confirmar = ?
+           WHERE id = ?""",
+        (personas, fecha, personas_tof, sin_confirmar, aula_id),
     )
 
 

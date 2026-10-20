@@ -48,6 +48,7 @@ function filaAula(a) {
     <td>${esc(a.nombre)}</td>
     <td>${estado}</td>
     <td>${a.personas}</td>
+    <td>${a.personas_tof ?? '—'}</td>
     <td>${docentes}</td>
     <td>${hora(a.ultima_conexion)}</td>
     <td class="acciones">
@@ -60,5 +61,5 @@ function filaAula(a) {
 export function dibujarAulas() {
   $('#tablaAulas').innerHTML = datos.estado.length
     ? datos.estado.map(filaAula).join('')
-    : '<tr><td colspan="7" class="vacio">Todavía no hay aulas. Agrega la primera con el formulario de arriba.</td></tr>';
+    : '<tr><td colspan="8" class="vacio">Todavía no hay aulas. Agrega la primera con el formulario de arriba.</td></tr>';
 }
