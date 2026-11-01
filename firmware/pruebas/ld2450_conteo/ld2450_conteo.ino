@@ -21,12 +21,12 @@
 #define RADAR_TX_PIN 17
 
 // ---- Ajustes (en milímetros) ----
-#define LINEA_Y     900    // línea a 90 cm dentro del salón (mitad del pasillo)
-#define HISTERESIS  250    // zona "muerta" alrededor de la línea (evita rebotes)
-#define Y_MIN       250    // zona ciega del radar: se ignora todo lo más cerca
-#define Y_MAX       2500   // se ignora lo que esté más lejos que esto
-#define X_MAX       700    // ancho del pasillo seguido (±)
-#define ANGULO_MAXIMO 30   // cono seguido: ± grados (el LD2450 ve ±60°)
+#define LINEA_Y     700    // línea a 70 cm del radar
+#define HISTERESIS  120    // zona "muerta" alrededor de la línea (evita rebotes)
+#define Y_MIN       200    // zona ciega del radar (lo más cerca)
+#define Y_MAX       1800   // más lejos ya son las mesas (~150 cm)
+#define X_MAX       600    // ancho del pasillo (±), la puerta mide 85 cm
+#define ANGULO_MAXIMO 25   // cono seguido: ± grados (el LD2450 ve ±60°)
 #define FRAMES_PERDIDO 8   // tramas sin ver a la persona antes de olvidarla (~0.8 s)
 #define INVERTIR    false
 

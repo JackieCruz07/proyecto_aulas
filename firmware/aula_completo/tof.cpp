@@ -65,8 +65,45 @@ void registrarPaso(int dir) {
   else         Serial.printf("<< [ToF] CANDIDATO SALIDA  (B->A) | Personas segun el ToF: %d\n", contador);
 }
 
-// Mide la distancia "libre" de cada sensor (mediana de varias lecturas). La puerta debe estar vacía.
-// Arriba del marco apuntando al piso esa distancia es la altura del umbral (~2 m).
+// Calcula la mediana y valida el rango. Si todo está bien fija base[] y reinicia el estado.
+bool evaluarCalibracion(int muestras[2][MUESTRAS_CALIBRACION], int n[2]) {
+  int nuevas[2] = {0, 0};
+  bool correcto = true;
+  for (int i = 0; i < 2; i++) {
+    if (n[i] < 8) {
+      Serial.printf("ToF: el sensor %c no da lecturas validas (revisa su orientacion y su cableado).\n", 'A' + i);
+      return false;
+    }
+    for (int a = 1; a < n[i]; a++) {                 // orden simple para sacar la mediana
+      int v = muestras[i][a], b = a - 1;
+      while (b >= 0 && muestras[i][b] > v) { muestras[i][b + 1] = muestras[i][b]; b--; }
+      muestras[i][b + 1] = v;
+    }
+    nuevas[i] = muestras[i][n[i] / 2];
+    if (nuevas[i] < TOF_MIN_BASE_MM) {
+      Serial.printf("ToF: el sensor %c mide solo %d mm (minimo %d): no parece estar arriba del marco apuntando al umbral, o algo lo tapa.\n",
+                    'A' + i, nuevas[i], TOF_MIN_BASE_MM);
+      correcto = false;
+    } else if (nuevas[i] > TOF_MAX_BASE_MM) {
+      Serial.printf("ToF: el sensor %c mide %d mm (maximo %d): apunta demasiado lejos, reajusta su angulo.\n",
+                    'A' + i, nuevas[i], TOF_MAX_BASE_MM);
+      correcto = false;
+    }
+  }
+  if (!correcto) {
+    Serial.println("ToF: corrige la posicion/angulo de los sensores y pulsa 'k' para recalibrar con la puerta vacia.");
+    return false;
+  }
+  base[0] = nuevas[0];
+  base[1] = nuevas[1];
+  Serial.printf("ToF listo. Distancia libre: A = %d mm, B = %d mm. Se cuenta cuando se acorta mas de %d mm.\n",
+                base[0], base[1], TOF_MARGEN_MM);
+  for (int i = 0; i < 2; i++) { bloqueado[i] = false; seguidasBloqueado[i] = seguidasLibre[i] = 0; }
+  estado = LIBRE;
+  return true;
+}
+
+// Calibración del arranque: bloquea el setup unos segundos (la puerta debe estar vacía).
 bool calibrar() {
   int muestras[2][MUESTRAS_CALIBRACION];
   int n[2] = {0, 0};
@@ -79,37 +116,41 @@ bool calibrar() {
     }
     delay(5);
   }
-  bool correcto = true;
+  return evaluarCalibracion(muestras, n);
+}
+
+// Recalibración SIN bloquear el loop: junta muestras en cada vuelta para que el radar
+// siga leyéndose y la fusión no crea que se cayó (eso pasaba al pulsar 'k' con la versión anterior).
+bool calibrando = false;
+int calMuestras[2][MUESTRAS_CALIBRACION];
+int calN[2] = {0, 0};
+unsigned long calInicio = 0;
+
+void iniciarCalibracion() {
+  calN[0] = calN[1] = 0;
+  calInicio = millis();
+  calibrando = true;
+}
+
+void pasoCalibracion() {
   for (int i = 0; i < 2; i++) {
-    if (n[i] < 8) {
-      Serial.printf("ToF: el sensor %c no da lecturas validas (revisa su orientacion y su cableado).\n", 'A' + i);
-      return false;
-    }
-    for (int a = 1; a < n[i]; a++) {                 // orden simple para sacar la mediana
-      int v = muestras[i][a], b = a - 1;
-      while (b >= 0 && muestras[i][b] > v) { muestras[i][b + 1] = muestras[i][b]; b--; }
-      muestras[i][b + 1] = v;
-    }
-    base[i] = muestras[i][n[i] / 2];
-    if (base[i] < TOF_MIN_BASE_MM) {
-      Serial.printf("ToF: el sensor %c mide solo %d mm (minimo %d): no parece estar arriba del marco apuntando al umbral, o algo lo tapa.\n",
-                    'A' + i, base[i], TOF_MIN_BASE_MM);
-      correcto = false;
-    } else if (base[i] > TOF_MAX_BASE_MM) {
-      Serial.printf("ToF: el sensor %c mide %d mm (maximo %d): apunta demasiado lejos, reajusta su angulo.\n",
-                    'A' + i, base[i], TOF_MAX_BASE_MM);
-      correcto = false;
-    }
+    if (calN[i] >= MUESTRAS_CALIBRACION || !sensores[i].dataReady()) continue;
+    uint16_t mm = sensores[i].read(false);
+    if (!sensores[i].timeoutOccurred() && lecturaValida(mm)) calMuestras[i][calN[i]++] = mm;
   }
-  if (!correcto) {
-    Serial.println("ToF: corrige la posicion/angulo de los sensores y pulsa 'k' para recalibrar con la puerta vacia.");
-    return false;
+  bool completas = calN[0] >= MUESTRAS_CALIBRACION && calN[1] >= MUESTRAS_CALIBRACION;
+  if (!completas && millis() - calInicio < 5000) return;
+
+  calibrando = false;
+  if (!evaluarCalibracion(calMuestras, calN)) {
+    if (base[0] > 0 && base[1] > 0) {
+      Serial.printf("ToF: la calibracion nueva no es valida; sigo con la anterior (A = %d mm, B = %d mm).\n",
+                    base[0], base[1]);
+      listo = true;
+    }
+  } else {
+    listo = true;
   }
-  Serial.printf("ToF listo. Distancia libre: A = %d mm, B = %d mm. Se cuenta cuando se acorta mas de %d mm.\n",
-                base[0], base[1], TOF_MARGEN_MM);
-  for (int i = 0; i < 2; i++) { bloqueado[i] = false; seguidasBloqueado[i] = seguidasLibre[i] = 0; }
-  estado = LIBRE;
-  return true;
 }
 
 void leerSensores() {
@@ -204,6 +245,7 @@ void iniciar() {
 }
 
 void actualizar() {
+  if (calibrando) { pasoCalibracion(); return; }
   if (!listo) return;
   leerSensores();
   actualizarPaso(millis());
@@ -231,15 +273,14 @@ int  personas()   { return contador; }
 void reiniciar()  { contador = 0; colaCabeza = colaCola = 0; }
 
 void recalibrar() {
-  if (!listo) {
-    // Puede que la calibración inicial fallara por una posición mal apuntada:
-    // se reintenta (los sensores ya están iniciados).
-    Serial.println("Reintentando la calibracion del ToF: la puerta debe estar vacia...");
-    listo = calibrar();
+  if (calibrando) {
+    Serial.println("Ya hay una calibracion del ToF en curso: espera a que termine.");
     return;
   }
-  Serial.println("Recalibrando el ToF: la puerta debe estar vacia...");
-  listo = calibrar();
+  // Si la calibración inicial falló, también se reintenta por aquí (sin bloquear el loop).
+  Serial.println(listo ? "Recalibrando el ToF: la puerta debe estar vacia..."
+                       : "Reintentando la calibracion del ToF: la puerta debe estar vacia...");
+  iniciarCalibracion();
 }
 
 void alternarDiagnostico() {

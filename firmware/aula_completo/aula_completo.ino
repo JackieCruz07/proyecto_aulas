@@ -79,7 +79,7 @@ void atenderComandosSerie() {
     Conteo::reiniciar();
     Tof::reiniciar();
     Verificacion::reiniciar();
-    Serial.println("Contadores reiniciados a 0 (radar y ToF)");
+    Serial.println("Contadores reiniciados a 0 (radar, ToF y fusion)");
   } else if (c == 'd' || c == 'D') {   // 'd' muestra u oculta lo que ve el radar
     Conteo::alternarDiagnostico();
   } else if (c == 't' || c == 'T') {   // 't' muestra u oculta las distancias de los sensores ToF

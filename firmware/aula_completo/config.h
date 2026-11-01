@@ -42,21 +42,24 @@ constexpr bool RADAR_BAUDIOS_AUTO = true;         // si no llegan tramas, prueba
 // =====================================================================
 
 // ---- Cobertura del radar: el pasillo de la puerta (milímetros) ----
-constexpr int  LINEA_Y        = 900;   // línea imaginaria a 90 cm dentro del salón (mitad del pasillo)
-constexpr int  HISTERESIS     = 250;   // zona muerta ±250 mm alrededor de la línea (evita rebotes)
-constexpr int  Y_MIN          = 250;   // zona ciega del radar: se ignora todo lo más cerca que esto
-constexpr int  Y_MAX          = 2500;  // se ignora a más de 2.5 m: eso ya es gente dentro del salón
-constexpr int  X_MAX          = 700;   // ancho del pasillo seguido (±): fuera de esto no es la puerta
-constexpr int  ANGULO_MAXIMO  = 30;    // solo se sigue a quien esté dentro de ±30° del eje del radar
+// Medidas del salón (puerta de 85 cm, mesas a ~150 cm del marco):
+// el radar solo debe vigilar el pasillo de la puerta, NO las mesas.
+constexpr int  LINEA_Y        = 700;   // línea a 70 cm del radar: al pasarla se considera que entró/salió
+constexpr int  HISTERESIS     = 120;   // zona muerta ±120 mm alrededor de la línea (evita rebotes)
+constexpr int  Y_MIN          = 200;   // zona ciega del radar: se ignora todo lo más cerca que esto
+constexpr int  Y_MAX          = 1800;  // se ignora a más de 1.8 m: así no ve a la gente de las mesas (150 cm)
+constexpr int  X_MAX          = 600;   // ancho del pasillo seguido (±): la puerta mide 85 cm, no hace falta más
+constexpr int  ANGULO_MAXIMO  = 25;    // solo se sigue a quien esté dentro de ±25° del eje del radar
                                        // (el LD2450 ve ±60°; estrechar el cono evita "personas de más")
 constexpr bool INVERTIR       = false; // true si en tu montaje entradas y salidas quedan al revés
 
 // Filtros contra ruido y cambios de "ranura" del radar (cuando hay varias personas a la vez)
-constexpr int  MIN_FRAMES_EN_ZONA = 2;    // tramas seguidas en la nueva zona antes de creer un cruce
-constexpr int  FRAMES_PERDIDO     = 15;   // tramas sin ver a la persona antes de olvidarla (~1.5 s)
-constexpr int  MAX_SALTO_MM       = 500;  // un salto mayor que esto en una trama es imposible caminando:
+constexpr int  MIN_FRAMES_EN_ZONA = 3;    // tramas seguidas en la nueva zona antes de creer un cruce
+                                          // (3 = ~300 ms: evita que el movimiento de una silla cuente)
+constexpr int  FRAMES_PERDIDO     = 20;   // tramas sin ver a la persona antes de olvidarla (~2 s)
+constexpr int  MAX_SALTO_MM       = 400;  // un salto mayor que esto en una trama es imposible caminando:
                                           // la ranura cambió de persona y se vuelve a seguirla desde cero
-constexpr unsigned long MIN_MS_CRUCE_RANURA = 600;  // dos cruces de la misma ranura no vienen más seguidos
+constexpr unsigned long MIN_MS_CRUCE_RANURA = 800;  // dos cruces de la misma ranura no vienen más seguidos
 
 // ---- Envío al servidor ----
 constexpr unsigned long INTERVALO_LATIDO_MS = 60000UL;   // cada minuto avisa que sigue vivo
@@ -92,7 +95,8 @@ constexpr bool TOF_INVERTIR = false;       // true si A y B están puestos al re
 // SALIDA:  propone el radar (lejos->cerca); el ToF confirma si además ve el
 //          cruce por la puerta (B->A). Sin confirmación se descarta (se
 //          acercaron a la puerta y se regresaron sin salir).
-constexpr unsigned long CONFIRMACION_ESPERA_MS = 3000; // tiempo máximo que el confirmador puede tardar
+constexpr unsigned long CONFIRMACION_ESPERA_MS = 5000; // tiempo máximo que el confirmador puede tardar
+                                                       // (5 s: cubre a quien se detiene un momento en la puerta)
 constexpr int  CONFIRMACION_ADELANTO_MS = 400;         // el confirmador puede aparecer hasta 400 ms "antes"
                                                        // del evento que confirma (rezagos de medición)
 constexpr int  MAX_GRUPO = 2;        // un confirmador puede validar hasta 2 cruces seguidos de una pareja

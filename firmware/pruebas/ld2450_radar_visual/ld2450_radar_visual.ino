@@ -25,12 +25,12 @@
 #define RADAR_TX_PIN 17
 
 // ---- Ajustes (milímetros) ----
-#define LINEA_Y     900    // línea a 90 cm dentro del salón
-#define HISTERESIS  250    // zona muerta ± alrededor de la línea
-#define Y_MIN       250    // zona ciega del radar
-#define Y_MAX       2500   // más lejos ya es gente dentro del salón
-#define X_MAX       700    // ancho del pasillo seguido (±)
-#define ANGULO_MAXIMO 30   // cono seguido: ± grados
+#define LINEA_Y     700    // línea a 70 cm del radar
+#define HISTERESIS  120    // zona muerta ± alrededor de la línea
+#define Y_MIN       200    // zona ciega del radar
+#define Y_MAX       1800   // más lejos ya son las mesas (~150 cm)
+#define X_MAX       600    // ancho del pasillo seguido (±)
+#define ANGULO_MAXIMO 25   // cono seguido: ± grados
 #define FRAMES_PERDIDO 8
 #define INVERTIR    false
 
@@ -73,7 +73,7 @@ const char PAGINA[] PROGMEM = R"rawliteral(
 <button onclick="fetch('/reset')">Reiniciar contador</button><br>
 <small>Punto de color: dentro del pasillo de conteo. Punto gris: fuera del área de conteo.<br>
 Radar abajo al centro; el frente del sensor apunta hacia arriba (hacia el interior del salón).<br>
-Línea amarilla: línea de conteo (90 cm). Discontinua azul: cono de ±30°. Sólida: cono real ±60°.</small>
+Línea amarilla: línea de conteo (75 cm). Discontinua azul: cono de ±30°. Sólida: cono real ±60°.</small>
 <script>
 const c=document.getElementById('c'), g=c.getContext('2d');
 const W=c.width, H=c.height, MAXX=3000, MAXY=4000;

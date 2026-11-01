@@ -148,13 +148,13 @@ void actualizar() {
   // ---- Lo que nunca se confirmó se descarta ----
   if (modoActual == FUSION) {
     caducar(propE, ahora, nTofSolo,
-            "Descartada ENTRADA: el ToF vio el cruce por la puerta pero el radar no vio a nadie entrar (se asomaron).");
+            "Descartada ENTRADA: el ToF vio el cruce pero el radar no vio a la persona pasar al salon (se asomo o se quedo en el umbral).");
     caducar(confE, ahora, nRadarSolo,
-            "Descartada entrada: el radar vio a alguien alejarse de la puerta pero el ToF no vio cruce (alguien del salon).");
+            "Descartada entrada: el radar vio a alguien alejarse de la puerta pero el ToF no vio el cruce (alguien del salon).");
     caducar(propS, ahora, nRadarSolo,
-            "Descartada SALIDA: el radar vio a alguien acercarse a la puerta pero el ToF no vio cruce (se acercaron y regresaron).");
+            "Descartada SALIDA: el radar vio a alguien acercarse a la puerta pero el ToF no vio el cruce (se acerco y se regreso).");
     caducar(confS, ahora, nTofSolo,
-            "Descartada salida: el ToF vio el cruce por la puerta pero el radar no vio a nadie salir.");
+            "Descartada salida: el ToF vio el cruce pero el radar no vio a nadie cerca de la puerta (se asomo).");
   }
 }
 

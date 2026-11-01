@@ -120,14 +120,15 @@ Los pines se cambian en `firmware/aula_completo/config.h`.
 | **ENTRADA** | ToF (cruce A→B) | radar (cerca→lejos) | se descarta: alguien solo se asomó |
 | **SALIDA** | radar (lejos→cerca) | ToF (cruce B→A) | se descarta: se acercaron y se regresaron |
 
-La confirmación puede tardar hasta `CONFIRMACION_ESPERA_MS` (3 s). Los cruces descartados
+La confirmación puede tardar hasta `CONFIRMACION_ESPERA_MS` (5 s). Los cruces descartados
 se anotan como `sin_confirmar`; el panel muestra el conteo del ToF junto al oficial y avisa
 "Revisar" si difieren en 2 personas o más. Si un sensor se cae (radar sin tramas 5 s, o ToF
 sin conectar), **el otro cuenta solo** con un aviso en el Monitor Serie.
 
-El radar solo sigue a quien esté dentro del **pasillo de la puerta**: cono de ±30°
-(`ANGULO_MAXIMO`), ancho ±700 mm (`X_MAX`), rango 25 cm–2.5 m (`Y_MIN`/`Y_MAX`) y línea de
-conteo a 90 cm dentro del salón (`LINEA_Y`). Así ignora a la gente de las mesas y evita los
+El radar solo sigue a quien esté dentro del **pasillo de la puerta**: cono de ±25°
+(`ANGULO_MAXIMO`), ancho ±600 mm (`X_MAX`), rango 20 cm–1.8 m (`Y_MIN`/`Y_MAX`) y línea de
+conteo a 70 cm del radar (`LINEA_Y`). Así ignora a la gente de las mesas (que están a ~150 cm
+y quedan fuera de `Y_MAX`) y evita los
 "falsos" de varias personas a la vez (más filtros: permanencia mínima en la zona, salto
 imposible entre tramas y espera entre cruces de la misma ranura).
 
@@ -149,7 +150,7 @@ En el Monitor Serie del ESP32 (115200 baudios):
 - Escribe `r` para reiniciar todos los contadores a 0 (radar, ToF y fusión), y `e` para ocultar o mostrar el informe de estado que sale cada 5 segundos. Ahí aparece el `modo:` (radar+tof, solo tof o solo radar).
 - Si el radar manda bytes pero el programa no recibe tramas, casi siempre es la **velocidad (baudios)** del radar: la app HLKRadarTool permite cambiarla. `aula_completo` la busca sola al arrancar (`RADAR_BAUDIOS_AUTO` en `config.h`) y `diagnostico_hardware` la muestra con el comando `b`.
 - Si el radar o el lector RFID no responden, carga primero `firmware/pruebas/diagnostico_hardware`: prueba ambos sin WiFi y muestra con números qué funciona (tramas del radar por segundo, tarjetas leídas, motivo del último reinicio).
-- Para que cuente una **entrada**, los ToF deben ver el cruce A→B por la puerta **y** el radar debe ver a la persona pasar de "cerca" a "lejos" de la línea (`LINEA_Y`, a 90 cm dentro del salón). Caminar de lado frente al radar, o moverse sin cruzar la línea, no cuenta. Para una **salida** es al revés: primero el radar (lejos→cerca) y luego los ToF (B→A).
+- Para que cuente una **entrada**, los ToF deben ver el cruce A→B por la puerta **y** el radar debe ver a la persona pasar de "cerca" a "lejos" de la línea (`LINEA_Y`, a 70 cm del radar). Caminar de lado frente al radar, o moverse sin cruzar la línea, no cuenta. Para una **salida** es al revés: primero el radar (lejos→cerca) y luego los ToF (B→A).
 - Si el Monitor Serie muestra "Descartada ENTRADA/SALIDA", alguien se asomó a la puerta o se acercó al radar sin salir: es el filtro de confirmación haciendo su trabajo. Si pasan muchas veces seguidas, revisa con `d` y `t` que ambos sensores estén viendo el mismo cruce.
 - Si los ToF calibran con un valor fuera de rango (menos de 1200 mm o más de 3000 mm), el sensor no está arriba del marco apuntando al umbral: corrige su ángulo y pulsa `k` con la puerta vacía.
 - Una tarjeta se vuelve a leer cuando se aleja del lector unos instantes. El servidor ignora la misma tarjeta si se pasa dos veces en menos de `SEGUNDOS_ANTIREBOTE` (3 s por defecto, en `config.py`).
